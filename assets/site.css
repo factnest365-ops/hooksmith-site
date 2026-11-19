@@ -1,0 +1,251 @@
+:root {
+  color-scheme: dark;
+  --void: #0a0909;
+  --deep: #141010;
+  --bone: #ede9e1;
+  --mist: #b7ada7;
+  --heat: #ff773f;
+  --line: #392a26;
+  --display: "Inter Tight", "Arial Narrow", sans-serif;
+  --mono: "JetBrains Mono", monospace;
+  --gutter: clamp(18px, 4.2vw, 72px);
+  --measure: 1296px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-padding-top: 24px; }
+body {
+  margin: 0;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  background: var(--void);
+  color: var(--bone);
+  font: 400 17px/1.55 var(--display);
+  -webkit-font-smoothing: antialiased;
+}
+main { flex: 1; }
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; text-decoration: none; }
+a:focus-visible { outline: 2px solid var(--heat); outline-offset: 5px; }
+h1, h2, h3, p { margin: 0; }
+h1, h2, h3 { font-weight: 600; }
+h1, h2 { text-wrap: balance; }
+h3 { line-height: 1.15; }
+.frame { width: min(100% - 2 * var(--gutter), var(--measure)); margin-inline: auto; }
+
+.skip {
+  position: absolute;
+  z-index: 5;
+  top: 8px;
+  left: 16px;
+  padding: 8px 12px;
+  transform: translateY(-140%);
+  background: var(--bone);
+  color: var(--void);
+}
+.skip:focus { transform: none; }
+
+.site-header { border-bottom: 1px solid var(--line); }
+.header-inner, .footer-inner {
+  min-height: 75px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+}
+.brand { width: clamp(120px, 11vw, 164px); }
+.site-header nav, .site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(16px, 3.2vw, 48px);
+}
+.site-header nav a, .site-footer nav a {
+  color: var(--mist);
+  font-size: 15px;
+  line-height: 1.2;
+  padding-block: 10px;
+}
+.site-header nav a:hover, .site-footer nav a:hover, nav a[aria-current="page"] {
+  color: var(--bone);
+}
+nav a[aria-current="page"] { box-shadow: inset 0 -1px var(--heat); }
+.header-contact {
+  justify-self: end;
+  font-size: 14px;
+  padding: 8px 15px;
+  border: 1px solid var(--line);
+}
+.header-contact:hover { border-color: var(--heat); }
+.header-contact span { color: var(--heat); margin-left: 4px; }
+
+.hero { border-bottom: 1px solid var(--line); }
+.hero-inner {
+  min-height: clamp(510px, 45vw, 670px);
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.48fr) minmax(0, 1fr);
+  align-items: center;
+  isolation: isolate;
+}
+.hero-copy {
+  position: relative;
+  z-index: 1;
+  padding-block: clamp(60px, 7vw, 104px);
+}
+h1 {
+  max-width: 12ch;
+  font-size: clamp(58px, 6.65vw, 104px);
+  line-height: .94;
+  letter-spacing: -.05em;
+  word-spacing: .035em;
+}
+h1 span { color: var(--heat); }
+.hero-copy > p, .page-heading > p:last-child {
+  max-width: 44ch;
+  margin-top: 25px;
+  color: var(--mist);
+  font-size: clamp(17px, 1.45vw, 21px);
+  line-height: 1.55;
+}
+.hero-art {
+  position: absolute;
+  z-index: -1;
+  inset: 22px 0 22px 42%;
+  background: url("thermal-field.png") center right / cover no-repeat;
+  image-rendering: pixelated;
+  border: 1px solid #281918;
+  border-left: 0;
+}
+.hero-art::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--void), transparent 35%);
+}
+.art-corner, .art-cross { position: absolute; color: var(--mist); opacity: .65; }
+.art-corner {
+  width: 13px;
+  height: 13px;
+  top: 11px;
+  right: 11px;
+  border-top: 1px solid currentColor;
+  border-right: 1px solid currentColor;
+}
+.art-cross { bottom: 9px; right: 12px; font: 14px/1 var(--mono); }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 25px;
+  margin-top: 32px;
+}
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  width: fit-content;
+  padding: 13px 17px;
+  background: var(--heat);
+  color: #1d0b06;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.3;
+}
+.button:hover { background: #ff9c73; }
+.text-link { padding-block: 8px; font-size: 15px; }
+.text-link:hover { color: var(--heat); }
+.text-link span { margin-left: 5px; color: var(--mist); }
+.label {
+  margin-bottom: 14px;
+  color: var(--heat);
+  font: 500 11px/1.5 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .13em;
+}
+
+.services, .contact-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.26fr);
+  gap: clamp(30px, 6vw, 112px);
+  padding-block: clamp(56px, 7vw, 105px);
+}
+h2 {
+  max-width: 17ch;
+  font-size: clamp(36px, 4.15vw, 61px);
+  line-height: 1;
+  letter-spacing: -.04em;
+  word-spacing: .025em;
+}
+.service-list { border-top: 1px solid var(--line); }
+.service-list article {
+  display: grid;
+  grid-template-columns: minmax(0, .82fr) minmax(0, 1.3fr);
+  gap: 12px 24px;
+  padding-block: 21px;
+  border-bottom: 1px solid var(--line);
+}
+.service-list h3 { font-size: clamp(21px, 2vw, 27px); letter-spacing: -.03em; }
+.service-list p, .contact p:not(.label) { color: var(--mist); }
+.contact { border-block: 1px solid var(--line); background: var(--deep); }
+.contact-inner { align-items: center; }
+.contact p:not(.label) { margin-top: 16px; max-width: 42ch; }
+.contact-inner .button { justify-self: end; }
+
+.page-hero { border-bottom: 1px solid var(--line); background: var(--deep); }
+.page-heading {
+  padding-block: clamp(62px, 8.5vw, 122px);
+  background: linear-gradient(90deg, var(--deep) 32%, transparent 90%),
+    url("thermal-field.png") right center / auto 130% no-repeat;
+}
+.page-heading h1 { font-size: clamp(55px, 6vw, 87px); }
+.page-heading > p:last-child { max-width: 48ch; }
+
+.site-footer { border-top: 1px solid var(--line); }
+.contact:last-child { border-bottom: 0; }
+.footer-inner { min-height: 91px; }
+.footer-inner .brand { width: 122px; }
+.footer-inner small { justify-self: end; color: var(--mist); font: 11px/1.4 var(--mono); }
+
+@media (max-width: 880px) {
+  .hero-inner { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+  .hero-art { inset-inline-start: 38%; }
+  .services { grid-template-columns: minmax(0, .84fr) minmax(0, 1.16fr); }
+  .service-list article { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 650px) {
+  .header-inner { grid-template-columns: minmax(0, 1fr) auto; gap: 3px 16px; padding-top: 12px; }
+  .site-header nav { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; gap: 23px; }
+  .site-header nav a { padding-block: 12px; }
+  .hero-inner { min-height: auto; grid-template-columns: minmax(0, 1fr); }
+  .hero-copy { padding-block: 48px 24px; }
+  h1 { font-size: clamp(43px, 10.8vw, 62px); }
+  .hero-copy > p { margin-top: 20px; }
+  .actions { margin-top: 23px; gap: 8px 16px; }
+  .hero-art {
+    position: relative;
+    inset: auto;
+    z-index: 0;
+    height: clamp(154px, 43vw, 258px);
+    margin-bottom: 16px;
+    border: 1px solid #281918;
+    background-position: center 47%;
+  }
+  .hero-art::before { display: none; }
+  .services, .contact-inner { grid-template-columns: minmax(0, 1fr); }
+  .service-list article { padding-block: 18px; }
+  .contact-inner .button { justify-self: start; }
+  .page-heading {
+    background-image: linear-gradient(90deg, var(--deep) 15%, #141010ad 70%, #14101044),
+      url("thermal-field.png");
+    background-position: right center;
+  }
+  .page-heading h1 { font-size: clamp(43px, 10.2vw, 65px); }
+  .footer-inner { grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; padding-block: 18px; }
+  .site-footer nav { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; gap: 20px; }
+}
