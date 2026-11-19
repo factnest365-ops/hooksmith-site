@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Blind contract test runner - Hooksmith site v2 (written from contract.md + RULINGS.md + spec.md only).
+// Contract test runner - original blind layer plus implementer-owned inbound-offer delta.
 // Usage: node tests/site-contract.mjs <path-to-index.html>
-//        (run from the factory folder with no arg: defaults to artifacts/index.html)
+//        (no arg: defaults to index.html in this bundle)
 // Exit codes: 0 = all pass, 1 = one or more FAIL, 2 = usage error (file missing/unreadable).
 // Dependency-free, no network. Reads ONLY the file given on argv (or the default above).
 
@@ -19,7 +19,7 @@ const t = (name, fn) => tests.push({ id: nextId(), name, fn });
 /* ---------------------------------------------------------------- helpers */
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-// exact phrase with whitespace tolerance between words ("billed on the first caught call")
+// exact phrase with whitespace tolerance between words
 const flex = (s) => new RegExp(esc(s).trim().split(/\s+/).join('\\s+'));
 // collapse whitespace runs to single space (for structural/attr matching)
 const norm = (s) => s.replace(/\s+/g, ' ');
@@ -101,16 +101,16 @@ function tighten(s) {
 
 const arg = process.argv[2];
 if (arg === undefined) {
-  // no arg: default to artifacts/index.html relative to CWD, then relative to script dir
+  // no arg: default to this bundle, retaining the factory artifact fallback
   const here = dirname(fileURLToPath(import.meta.url));
-  const candidates = ['artifacts/index.html', join(here, '..', 'artifacts', 'index.html')];
+  const candidates = ['index.html', join(here, '..', 'index.html'), 'artifacts/index.html', join(here, '..', 'artifacts', 'index.html')];
   let found = null;
   for (const c of candidates) {
     try { readFileSync(c, 'utf8'); found = c; break; } catch { /* try next */ }
   }
   if (!found) {
     console.error('usage: node tests/site-contract.mjs <path-to-index.html>');
-    console.error('no argument given and artifacts/index.html not found');
+    console.error('no argument given and index.html / artifacts/index.html not found');
     process.exit(2);
   }
   process.argv[2] = found;
@@ -148,11 +148,11 @@ const footerClose = src.search(/<\/footer\s*>/i);
 const footer = footerStart >= 0 ? src.slice(footerStart, footerClose) : null;
 
 const idx = {};
-for (const id of ['top', 'main', 'field', 'loss', 'line', 'triage', 'terms', 'proof', 'questions', 'contact']) {
+for (const id of ['top', 'main', 'field', 'loss', 'line', 'triage', 'terms', 'company', 'careers', 'proof', 'questions', 'contact']) {
   idx[id] = idIdx(src, id);
 }
 const lineSlice = slice(src, idx.line, idx.triage);
-const termsSlice = slice(src, idx.terms, idx.proof);
+const termsSlice = slice(src, idx.terms, idx.company);
 const proofSlice = slice(src, idx.proof, idx.questions);
 const questionsSlice = slice(src, idx.questions, idx.contact);
 
@@ -249,8 +249,8 @@ t('secondary ids present (logbody, missed, annual, verdict, contour, warp, calc-
     if (idIdx(src, id) < 0) throw new Error(`missing id="${id}"`);
 });
 
-t('section labels 01..08 exact', () => {
-  const labels = ['01 / The loss', '02 / The line', '03 / Triage', '04 / Growth', '05 / Terms', '06 / Proof', '07 / Questions', '08 / Start'];
+t('section labels 01..10 exact', () => {
+  const labels = ['01 / The loss', '02 / The line', '03 / Triage', '04 / Growth', '05 / Terms', '06 / Who we are', '07 / Careers', '08 / Proof', '09 / Questions', '10 / Start'];
   for (const L of labels) if (!flex(L).test(src)) throw new Error(`section label "${L}" not found`);
 });
 
@@ -281,7 +281,7 @@ t('marquee: after hero / before #loss, aria-hidden, five honest phrases, transla
   const tag = src.slice(mqIdx, src.indexOf('>', mqIdx) + 1);
   if (!/aria-hidden=["']true["']/.test(tag)) throw new Error('.marquee element lacks aria-hidden="true"');
   const mqSlice = slice(src, mqIdx, idx.loss);
-  const phrases = ['~2 sec', 'billed on the first caught call', 'no card before proof', 'no recording'];
+  const phrases = ['~2 sec', 'inbound calls only', 'no outbound dialing', 'no recording'];
   for (const p of phrases) if (!flex(p).test(mqSlice)) throw new Error(`marquee item missing phrase "${p}"`);
   if (!/llustrative/i.test(mqSlice)) throw new Error('marquee missing an illustrative-data note');
   if (!re(/translateX\(\s*-50%\s*\)/).test(css)) throw new Error('marquee CSS lacks the translateX(-50%) keyframe loop');
@@ -438,27 +438,31 @@ t('H2 label exact + .riso + no-clients statement, inside #proof', () => {
     throw new Error('#proof lacks the explicit no-clients statement (AC-8)');
 });
 
-t('H3: mailto link(s) all to gethooksmith@gmail.com with non-empty subject/body params; no <form>', () => {
+t('H3: every mailto is gethooksmith@gmail.com; fit-call mailto keeps town/average prompts; no <form>', () => {
   const hrefs = src.match(/href=["']mailto:([^"']+)["']/gi) || [];
   if (!hrefs.length) throw new Error('no mailto link found');
-  for (const raw of hrefs) {
-    const v = (raw.match(/mailto:([^"']+)/i) || [])[1] || '';
+  const vals = hrefs.map((raw) => raw.match(/mailto:([^"']+)/i)[1].replaceAll('&amp;', '&'));
+  for (const v of vals) {
     if (!/^gethooksmith@gmail\.com\?/i.test(v)) throw new Error(`mailto is not gethooksmith@gmail.com?...: ${v.slice(0, 60)}`);
     const subj = v.match(/[?&]subject=([^&]*)/i);
     const body = v.match(/[?&]body=([^&"']*)/i);
     if (!subj || !subj[1]) throw new Error('mailto lacks a non-empty subject param');
     if (!body || !body[1]) throw new Error('mailto lacks a non-empty body param');
   }
-  const dec = hrefs.join(' ').replace(/%20/gi, ' ').replace(/%0A/gi, '\n').replace(/%26/gi, '&').replace(/%3D/gi, '=');
+  const contact = vals.find((v) => /fit%20call|fit call/i.test(v));
+  if (!contact) throw new Error('main fit-call mailto link not found');
+  const dec = contact.replace(/%20/gi, ' ').replace(/%0A/gi, '\n').replace(/%26/gi, '&').replace(/%3D/gi, '=');
   if (!/town/i.test(dec) || !/average job value/i.test(dec))
-    throw new Error('mailto body params never mention Town and Average job value (Appendix A prompts)');
+    throw new Error('fit-call mailto body never mentions Town and Average job value (Appendix A prompts)');
   if (re(/<form\b/i).test(src)) throw new Error('a <form> is present (AC-5: mailto only)');
 });
 
-t('H4: contiguous "$2,000" somewhere; "one-time" inside #terms', () => {
-  if (!src.includes('$2,000')) throw new Error('no contiguous "$2,000" occurrence anywhere (plate may split it, hero/contact must not)');
+t('H4: no client prices inside #terms; three tiers named; no one-time framing', () => {
   if (!termsSlice) throw new Error('cannot locate #terms section');
-  if (!/one-time/i.test(termsSlice)) throw new Error('"one-time" framing missing in #terms');
+  if (/\$\s?\d/.test(termsSlice)) throw new Error('a dollar figure appears inside #terms (prices must not be published)');
+  for (const tier of ['Growth', 'Growth+', 'Scale'])
+    if (!termsSlice.includes(tier)) throw new Error(`missing tier "${tier}" inside #terms`);
+  if (/one-time/i.test(termsSlice)) throw new Error('obsolete "one-time" framing inside #terms');
 });
 
 t('H5: "3,867" present with national-average / industry framing', () => {
@@ -467,12 +471,15 @@ t('H5: "3,867" present with national-average / industry framing', () => {
     throw new Error('3,867 lacks its "national average / industry figure" framing copy');
 });
 
-t('H6: "~2 sec" present', () => {
-  if (!re(/~\s?2\s?sec/).test(src)) throw new Error('"~2 sec" not found');
+t('H6: answer speed is a setup target', () => {
+  const hero = slice(src, idIdx(src, 'field'), idIdx(src, 'loss')) || '';
+  if (!/~2 sec<\/b><span>Answer-time target/.test(hero)) {
+    throw new Error('hero must distinguish the answer-time target from a measured result');
+  }
 });
 
-t('H7: "no card before proof" AND "no recording" present', () => {
-  if (!flex('no card before proof').test(src)) throw new Error('"no card before proof" not found');
+t('H7: "no outbound dialing" AND "no recording" present', () => {
+  if (!flex('no outbound dialing').test(src)) throw new Error('"no outbound dialing" not found');
   if (!flex('no recording').test(src)) throw new Error('"no recording" not found');
 });
 
@@ -502,13 +509,19 @@ t('B4: no <blockquote>, no star ratings', () => {
 
 t('B5: no tel:, no demo-line CTA, no call/dial invitations', () => {
   if (re(/\btel:/i).test(S)) throw new Error('tel: URI scheme present');
+  // AC-9 is about inviting clients to call a demo line.
+  const careersAt = idIdx(S, 'careers');
+  const questionsAt = idIdx(S, 'questions');
+  const clientFacing = (careersAt >= 0 && questionsAt > careersAt)
+    ? S.slice(0, careersAt) + S.slice(questionsAt)
+    : S;
   for (const [label, rx] of [
     ['demo line/number', /demo\s+(?:line|number)/i],
     ['call (us|the line|our line/number)', /\bcall\s+(?:us|our\s+(?:line|number|team)|the\s+(?:line|number|demo))\b/i],
     ['dial invitation', /\bdial\s/i],
     ['try it live', /try\s+it\s+live/i],
     ['listen to a call', /listen\s+to\s+a\s+call/i],
-  ]) if (rx.test(S)) throw new Error(`${label} phrase present (AC-9)`);
+  ]) if (rx.test(clientFacing)) throw new Error(`${label} phrase present (AC-9)`);
 });
 
 t('B6: no 10-digit phone number anywhere (data-URI payloads excluded)', () => {
@@ -627,6 +640,86 @@ t('R8/AC-L1: mark-logo span + data-URI favicon + >= 3 distinct base64 logo paylo
   const payloads = new Set((src.match(/data:image\/png;base64,([A-Za-z0-9+/=]+)/g) || []).map((p) => p.split(',')[1]));
   if (payloads.size < 3)
     throw new Error(`only ${payloads.size} distinct data:image/png;base64 payload(s); AC-L1 requires >= 3 (top bar, wordmark, favicon)`);
+});
+
+t('H8: Inbound only present in hero or FAQ', () => {
+  const hero = slice(src, idIdx(src, 'field'), idIdx(src, 'loss')) || '';
+  if (!/inbound only/i.test(hero + (questionsSlice || ''))) throw new Error('missing inbound-only framing in hero/FAQ');
+});
+
+t('B9: obsolete payment claims and tier name absent', () => {
+  for (const phrase of ['pilot', 'first caught call', 'credited against month 1', 'no card before proof', '$0 until', 'Multi-line'])
+    if (new RegExp(esc(phrase).split(/\s+/).join('\\s+'), 'i').test(S)) throw new Error(`obsolete claim "${phrase}" present`);
+});
+
+t('B10: unverified named product absent', () => {
+  if (/ChatGPT Business Hub/i.test(S)) throw new Error('unverified named product present');
+});
+
+t('N1: no published client prices anywhere (old pilot and three-tier figures gone)', () => {
+  for (const p of ['$5,000', '$7,500', '$15,000', '$2,000', '$3,000', '$1,999', '$2,499', '$2,999'])
+    if (S.includes(p)) throw new Error(`published client price "${p}" present`);
+  for (const phrase of ['billed on the first caught call', 'billed on first caught call', 'on the first caught call'])
+    if (new RegExp(esc(phrase).split(/\s+/).join('\\s+'), 'i').test(S)) throw new Error(`obsolete billing claim "${phrase}" present`);
+  if (/\bpilot\b/i.test(S)) throw new Error('pilot framing present');
+});
+
+t('N2: #careers is gated/informational, no open applications or pay figures, and states remote Egypt + contact', () => {
+  const i = idIdx(src, 'careers');
+  if (i < 0) throw new Error('no #careers section');
+  const j = idIdx(src, 'proof');
+  const c = (j > i) ? src.slice(i, j) : src.slice(i);
+  for (const [label, rx] of [
+    ['hiring gated', /hiring is (?:currently )?gated/i],
+    ['informational / no open applications', /informational only|no open applications/i],
+    ['no application form accepted', /no application form/i],
+    ['operates from India', /operates from india/i],
+    ['roles remote from Egypt', /roles? (?:are |is )?remote from egypt/i],
+    ['no general pay published', /general pay[^<]{0,120}not published|pay[^<]{0,80}not published here/i],
+    ['private agreements for negotiated terms', /private agreements/i],
+    ['verified contact email', /mailto:gethooksmith@gmail\.com/i],
+  ]) if (!rx.test(c)) throw new Error(`careers missing ${label}`);
+
+  // No application form / materials collection flow
+  if (re(/<form\b/i).test(c)) throw new Error('careers contains a form (application form not allowed while gated)');
+  if (/voice note|screening links|subject\s*["']phone setter/i.test(c))
+    throw new Error('careers contains application instructions/material collection (not allowed while gated)');
+  // No pay figures or dial targets promised in careers
+  if (/\$\s*\d/.test(c)) throw new Error('careers contains a dollar figure/pay figure (not allowed unless separately approved)');
+  if (/\b\d+\s*[- ]?\s*dials?\b|per closed deal|unlocked base/i.test(c))
+    throw new Error('careers contains pay/dial-target promises (not allowed in gated informational copy)');
+});
+
+t('N3: #company discloses India ops, founder, father as signer, pre-revenue', () => {
+  const i = idIdx(src, 'company');
+  if (i < 0) throw new Error('no #company section');
+  const j = idIdx(src, 'careers');
+  const c = (j > i) ? src.slice(i, j) : src.slice(i);
+  for (const [label, rx] of [
+    ['India operations', /based in India|works? from India|done from India|India, serving/i],
+    ['founder & operator', /founder and operator/i],
+    ['father signs', /father is the contracting party/i],
+    ['pre-revenue / no client', /pre-revenue|no paying client/i],
+  ]) if (!rx.test(c)) throw new Error(`company section missing ${label}`);
+});
+
+t('N4: no age disclosure anywhere (number, teen, young, minor)', () => {
+  for (const [label, rx] of [
+    ['age in years', /\b\d{1,3}[\s-]+years?[\s-]+old\b/i],
+    ['teen', /\bteen(?:ager|aged)?\b/i],
+    ['young founder/operator', /\byoung\s+(?:founder|operator|entrepreneur)\b/i],
+    ['minor', /\bminor\b/i],
+    ['age number', /\bage(?:d)?\s*\d{1,3}\b/i],
+  ]) if (rx.test(S)) throw new Error(`age disclosure present: ${label}`);
+});
+
+t('N5: no invented address, registration line or headcount claim', () => {
+  for (const [label, rx] of [
+    ['postal address', /\b\d+\s+[A-Z][\w'-]+\s+(?:Street|St\.?|Avenue|Ave\.?|Road|Rd\.?|Blvd\.?|Boulevard)\b/],
+    ['registration number', /\b(?:CIN|GSTIN|LLC|Inc\.|Ltd\.)\b/],
+    ['headcount', /\b\d+\s*(?:employees|staff|people|agents|setters)\b/i],
+    ['Cairo claim', /(?<!no )cairo/i],
+  ]) if (rx.test(S)) throw new Error(`${label} present`);
 });
 
 /* ---------------------------------------------------------------- report */
